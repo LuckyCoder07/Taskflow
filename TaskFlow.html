@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>TaskFlow</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/17.0.2/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/17.0.2/umd/react-dom.production.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+#root{min-height:100vh}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:rgba(128,128,128,.3);border-radius:3px}
+input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
+
+/* ── DARK THEME ── */
+.dark{
+  --bg:#06081A;--sur:#111428;--card:#161B32;--b1:#1E2440;--b2:#2A3358;
+  --tx:#E4E8F5;--txm:#6B7A9F;--txh:#2E3756;
+  --pri:#7C6EFA;--priG:rgba(124,110,250,.25);--priD:rgba(124,110,250,.12);
+  --acc:#A78BFA;--sec:#22D3EE;
+  --ok:#34D399;--okD:rgba(52,211,153,.12);
+  --warn:#FBBF24;--warnD:rgba(251,191,36,.12);
+  --err:#F87171;--errD:rgba(248,113,113,.12);
+  --o1:rgba(124,110,250,.16);--o2:rgba(34,211,238,.10);--o3:rgba(167,139,250,.10);
+}
+/* ── LIGHT THEME ── */
+.light{
+  --bg:#EEF0FF;--sur:#FFFFFF;--card:#F7F8FF;--b1:#E0E4F8;--b2:#C8CEF0;
+  --tx:#1A1D2E;--txm:#5B6280;--txh:#9BA3C4;
+  --pri:#4F46E5;--priG:rgba(79,70,229,.20);--priD:rgba(79,70,229,.09);
+  --acc:#7C3AED;--sec:#0891B2;
+  --ok:#059669;--okD:rgba(5,150,105,.10);
+  --warn:#D97706;--warnD:rgba(217,119,6,.10);
+  --err:#DC2626;--errD:rgba(220,38,38,.10);
+  --o1:rgba(79,70,229,.08);--o2:rgba(8,145,178,.06);--o3:rgba(124,58,237,.06);
+}
+
+/* ── ANIMATIONS ── */
+@keyframes floatA{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(38px,-28px) scale(1.07)}66%{transform:translate(-22px,18px) scale(.94)}}
+@keyframes floatB{0%,100%{transform:translate(0,0)}50%{transform:translate(-42px,32px) scale(1.1)}}
+@keyframes floatC{0%,100%{transform:translate(0,0)}25%{transform:translate(20px,-35px)}75%{transform:translate(-16px,20px)}}
+@keyframes grad{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes scaleIn{from{opacity:0;transform:scale(.93)}to{opacity:1;transform:scale(1)}}
+@keyframes slideL{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:translateX(0)}}
+@keyframes toastUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── ROOT ── */
+.app{min-height:100vh;background:var(--bg);color:var(--tx);transition:background .4s,color .4s;position:relative;overflow-x:hidden}
+
+/* ── ORBS ── */
+.orbs{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+.orb{position:absolute;border-radius:50%;filter:blur(70px)}
+.o1{width:480px;height:480px;background:var(--o1);top:-90px;left:-90px;animation:floatA 22s ease-in-out infinite}
+.o2{width:360px;height:360px;background:var(--o2);bottom:-50px;right:-50px;animation:floatB 28s ease-in-out infinite}
+.o3{width:270px;height:270px;background:var(--o3);top:44%;left:37%;animation:floatC 19s ease-in-out infinite}
+.layer{position:relative;z-index:1}
+
+/* ── GRADIENT TEXT ── */
+.gt{background:linear-gradient(135deg,var(--pri),var(--acc),var(--sec));background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:grad 5s ease infinite}
+
+/* ── BUTTONS ── */
+.bp{display:inline-flex;align-items:center;gap:6px;padding:9px 20px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--pri),var(--acc));color:#fff;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 4px 14px var(--priG);transition:transform .2s,box-shadow .2s}
+.bp:hover{transform:translateY(-2px);box-shadow:0 8px 24px var(--priG)}
+.bo{display:inline-flex;align-items:center;gap:6px;padding:9px 20px;border:1px solid var(--b1);border-radius:10px;background:none;color:var(--tx);font-size:13px;font-weight:500;cursor:pointer;transition:all .2s}
+.bo:hover{border-color:var(--pri);color:var(--pri);background:var(--priD)}
+
+/* ── LANDING NAV ── */
+.l-nav{display:flex;align-items:center;padding:15px 36px;border-bottom:1px solid var(--b1);backdrop-filter:blur(14px);position:sticky;top:0;z-index:80;transition:background .4s}
+.dark .l-nav{background:rgba(6,8,26,.75)}
+.light .l-nav{background:rgba(255,255,255,.8)}
+.nav-logo{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:700;flex:1}
+.logo-sq{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--pri),var(--acc));display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 4px 14px var(--priG);transition:transform .3s,box-shadow .3s;cursor:pointer;flex-shrink:0}
+.logo-sq:hover{transform:rotate(-8deg) scale(1.1);box-shadow:0 6px 22px var(--priG)}
+.nav-links{display:flex;gap:2px}
+.nav-link{padding:7px 12px;border-radius:8px;border:none;background:none;color:var(--txm);font-size:13px;cursor:pointer;transition:all .18s}
+.nav-link:hover{color:var(--tx);background:var(--b1)}
+.nav-acts{display:flex;align-items:center;gap:8px;margin-left:12px}
+.th-btn{width:38px;height:38px;border-radius:9px;border:1px solid var(--b1);background:var(--sur);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:all .25s}
+.th-btn:hover{border-color:var(--pri);background:var(--priD);transform:scale(1.08)}
+
+/* ── HERO ── */
+.hero{padding:68px 36px 48px;text-align:center;max-width:840px;margin:0 auto}
+.h-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;border:1px solid var(--pri);background:var(--priD);color:var(--pri);font-size:11px;font-weight:600;margin-bottom:20px;animation:fadeUp .6s ease both}
+.h-title{font-size:48px;font-weight:800;line-height:1.15;margin-bottom:16px;animation:fadeUp .6s .1s ease both}
+.h-sub{font-size:16px;color:var(--txm);line-height:1.7;margin-bottom:30px;max-width:540px;margin-left:auto;margin-right:auto;animation:fadeUp .6s .2s ease both}
+.h-acts{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:40px;animation:fadeUp .6s .3s ease both}
+.h-stats{display:flex;justify-content:center;gap:44px;animation:fadeUp .6s .4s ease both}
+.hs-v{font-size:22px;font-weight:800;color:var(--pri)}
+.hs-l{font-size:11px;color:var(--txm);margin-top:2px}
+
+/* ── FEATURES ── */
+.feat-sec{padding:24px 36px 52px;max-width:1040px;margin:0 auto}
+.sec-lbl{text-align:center;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--pri);margin-bottom:8px}
+.sec-h2{text-align:center;font-size:27px;font-weight:700;margin-bottom:32px}
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
+.feat-card{background:var(--sur);border:1px solid var(--b1);border-radius:15px;padding:21px;transition:all .28s;position:relative;overflow:hidden;cursor:default}
+.feat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--pri),var(--acc));opacity:0;transition:opacity .28s}
+.feat-card:hover{transform:translateY(-5px);border-color:var(--pri);box-shadow:0 14px 34px var(--priG)}
+.feat-card:hover::before{opacity:1}
+.feat-ic{width:44px;height:44px;border-radius:11px;background:var(--priD);display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:12px;transition:all .28s}
+.feat-card:hover .feat-ic{background:linear-gradient(135deg,var(--pri),var(--acc));transform:scale(1.12) rotate(-6deg)}
+.feat-t{font-size:14px;font-weight:600;margin-bottom:5px}
+.feat-d{font-size:12px;color:var(--txm);line-height:1.6}
+
+/* ── AUTH ── */
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:28px 20px;animation:fadeIn .3s ease}
+.auth-card{background:var(--sur);border:1px solid var(--b2);border-radius:20px;padding:36px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.3);animation:scaleIn .3s ease;position:relative;overflow:hidden}
+.auth-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--pri),var(--acc),var(--sec));background-size:200%;animation:grad 3s infinite}
+.a-logo{display:flex;align-items:center;gap:9px;margin-bottom:24px}
+.a-h{font-size:21px;font-weight:700;margin-bottom:4px}
+.a-s{font-size:13px;color:var(--txm);margin-bottom:20px}
+.a-err{background:var(--errD);border:1px solid var(--err);color:var(--err);padding:9px 12px;border-radius:8px;font-size:12px;margin-bottom:12px;animation:fadeUp .2s ease}
+.f-group{margin-bottom:13px}
+.f-lbl{display:block;font-size:10px;font-weight:600;color:var(--txm);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.f-inp{width:100%;padding:10px 12px;border:1px solid var(--b2);border-radius:9px;background:var(--bg);color:var(--tx);font-size:13px;outline:none;transition:all .2s}
+.f-inp:focus{border-color:var(--pri);box-shadow:0 0 0 3px var(--priD)}
+.f-inp::placeholder{color:var(--txh)}
+.a-sw{text-align:center;margin-top:16px;font-size:13px;color:var(--txm)}
+.a-lnk{color:var(--pri);cursor:pointer;font-weight:500;text-decoration:underline}
+.a-back{display:block;text-align:center;margin-top:10px;font-size:11px;color:var(--pri);cursor:pointer}
+
+/* ── DASH ── */
+.dash{display:flex;height:100vh;animation:fadeIn .3s ease}
+
+/* Sidebar */
+.sb{width:212px;background:var(--sur);border-right:1px solid var(--b1);display:flex;flex-direction:column;padding:12px 8px;flex-shrink:0;animation:slideL .35s ease;transition:background .4s;overflow-y:auto}
+.sb-logo{display:flex;align-items:center;gap:8px;padding:3px 7px;margin-bottom:20px;font-size:14px;font-weight:700}
+.sb-sec{font-size:10px;font-weight:600;color:var(--txh);text-transform:uppercase;letter-spacing:.8px;padding:0 7px;margin:5px 0 3px}
+.sb-item{display:flex;align-items:center;gap:7px;padding:7px 9px;border-radius:9px;font-size:12px;color:var(--txm);cursor:pointer;border:1px solid transparent;background:none;width:100%;text-align:left;font-family:inherit;transition:all .18s;margin-bottom:1px;position:relative}
+.sb-item:hover{color:var(--tx);background:var(--b1);transform:translateX(3px)}
+.sb-item.active{color:var(--pri);background:var(--priD);border-color:var(--priG)}
+.sb-item.active::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;border-radius:0 2px 2px 0;background:linear-gradient(var(--pri),var(--acc))}
+.sb-num{margin-left:auto;font-size:10px;font-weight:600;padding:1px 6px;border-radius:20px;background:var(--b1);color:var(--txm)}
+.sb-item.active .sb-num{background:var(--priD);color:var(--pri)}
+.sb-div{height:1px;background:var(--b1);margin:7px 6px}
+.sb-foot{margin-top:auto;padding-top:8px;border-top:1px solid var(--b1)}
+.u-row{display:flex;align-items:center;gap:8px;padding:7px 6px;border-radius:9px;margin-bottom:5px}
+.u-av{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--pri),var(--acc));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.u-nm{font-size:11px;font-weight:600}
+.u-em{font-size:10px;color:var(--txm)}
+.lo-btn{width:100%;background:none;border:1px solid var(--b1);color:var(--txm);border-radius:8px;padding:6px;font-size:11px;cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:5px}
+.lo-btn:hover{border-color:var(--err);color:var(--err);background:var(--errD)}
+
+/* Main */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.topb{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--b1);background:var(--sur);flex-shrink:0;transition:background .4s}
+.tb-ttl{font-size:14px;font-weight:700}
+.tb-sub{font-size:10px;color:var(--txm)}
+.srch{display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--b1);border-radius:9px;padding:6px 10px;min-width:155px;transition:all .2s;margin-left:auto}
+.srch:focus-within{border-color:var(--pri);box-shadow:0 0 0 3px var(--priD)}
+.srch input{background:none;border:none;outline:none;color:var(--tx);font-size:11px;width:100%}
+.srch input::placeholder{color:var(--txh)}
+.ic-btn{width:30px;height:30px;border:1px solid var(--b1);border-radius:8px;background:var(--bg);color:var(--txm);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;transition:all .18s;flex-shrink:0}
+.ic-btn:hover,.ic-btn.on{border-color:var(--pri);color:var(--pri);background:var(--priD)}
+.vt{display:flex;background:var(--bg);border:1px solid var(--b1);border-radius:8px;padding:2px;gap:1px}
+.vt-b{background:none;border:none;color:var(--txh);padding:5px 8px;border-radius:6px;cursor:pointer;font-size:13px;transition:all .18s}
+.vt-b:hover{color:var(--tx);background:var(--b1)}
+.vt-b.on{background:var(--priD);color:var(--pri)}
+
+/* Stats */
+.stats{display:flex;gap:8px;padding:10px 16px;border-bottom:1px solid var(--b1);background:var(--sur);flex-shrink:0;transition:background .4s}
+.sc{flex:1;background:var(--card);border:1px solid var(--b1);border-radius:11px;padding:10px 13px;display:flex;align-items:center;gap:9px;transition:all .25s;cursor:default}
+.sc:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.15)}
+.sc-ic{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;transition:transform .25s}
+.sc:hover .sc-ic{transform:scale(1.12) rotate(6deg)}
+.sc-v{font-size:19px;font-weight:700;line-height:1}
+.sc-l{font-size:10px;color:var(--txm);margin-top:2px}
+
+/* Board */
+.board{flex:1;overflow:auto;padding:13px 16px;display:flex;gap:11px;align-items:flex-start}
+.k-col{min-width:228px;flex:1;max-width:288px;display:flex;flex-direction:column;gap:7px}
+.k-hdr{display:flex;align-items:center;gap:7px;padding:8px 11px;border-radius:11px;margin-bottom:3px}
+.k-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.k-lbl{font-size:11px;font-weight:600;flex:1}
+.k-cnt{font-size:10px;font-weight:600;padding:1px 7px;border-radius:20px}
+
+/* Task card */
+.tc{background:var(--card);border:1px solid var(--b1);border-radius:12px;padding:12px;cursor:pointer;transition:border-color .2s,transform .2s,box-shadow .2s;position:relative;overflow:hidden}
+.tc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--pri),var(--acc));opacity:0;transition:opacity .2s}
+.tc:hover{border-color:var(--pri);transform:translateY(-3px);box-shadow:0 10px 26px var(--priG)}
+.tc:hover::before{opacity:1}
+.tc.pinned{border-color:var(--warn);box-shadow:0 0 14px rgba(251,191,36,.14)}
+.tc-pin{position:absolute;top:8px;right:8px;font-size:10px;opacity:.65}
+.tc-ttl{font-size:12px;font-weight:600;line-height:1.45;margin-bottom:5px;padding-right:16px}
+.tc-desc{font-size:11px;color:var(--txm);line-height:1.5;margin-bottom:8px}
+.prog-hdr{display:flex;justify-content:space-between;font-size:9px;color:var(--txm);margin-bottom:4px}
+.prog-bar{height:4px;background:var(--b1);border-radius:2px;overflow:hidden;margin-bottom:8px}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--pri),var(--acc));border-radius:2px;transition:width .5s ease}
+.tc-foot{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.bdg{display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:9px;font-weight:600}
+.tag-ch{padding:2px 6px;border-radius:5px;font-size:9px;font-weight:500}
+.tc-date{margin-left:auto;font-size:9px;color:var(--txh)}
+.tc-date.late{color:var(--err)}
+.tc-acts{display:flex;gap:4px;margin-top:9px;padding-top:9px;border-top:1px solid var(--b1);animation:fadeUp .18s ease}
+.ac-btn{background:var(--bg);border:1px solid var(--b1);color:var(--txm);border-radius:6px;padding:4px 8px;font-size:10px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:3px;transition:all .18s}
+.ac-btn:hover{background:var(--b1);color:var(--tx);transform:scale(1.05)}
+.ac-btn.del:hover{border-color:var(--err);color:var(--err);background:var(--errD)}
+.sts-sel{flex:1;background:var(--bg);border:1px solid var(--b1);border-radius:6px;padding:4px 7px;color:var(--txm);font-size:10px;outline:none;cursor:pointer;transition:border-color .18s}
+.sts-sel:hover{border-color:var(--pri)}
+.empty-col{border:1px dashed var(--b2);border-radius:12px;padding:22px;text-align:center;color:var(--txh);font-size:11px;transition:all .25s;cursor:pointer}
+.empty-col:hover{border-color:var(--pri);background:var(--priD);color:var(--pri)}
+.qa-row{display:flex;gap:5px;margin-top:3px}
+.qa-inp{flex:1;background:var(--bg);border:1px solid var(--b1);border-radius:8px;padding:6px 9px;color:var(--tx);font-size:11px;outline:none;transition:all .2s}
+.qa-inp:focus{border-color:var(--pri);box-shadow:0 0 0 3px var(--priD)}
+.qa-go{width:28px;height:28px;background:linear-gradient(135deg,var(--pri),var(--acc));border:none;border-radius:7px;color:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 3px 10px var(--priG);transition:all .2s}
+.qa-go:hover{transform:scale(1.1);box-shadow:0 5px 16px var(--priG)}
+
+/* List view */
+.lv{flex:1;overflow:auto;padding:13px 16px}
+.l-tbl{width:100%;border-collapse:collapse}
+.l-tbl th{text-align:left;font-size:10px;font-weight:600;color:var(--txh);text-transform:uppercase;letter-spacing:.5px;padding:0 10px 8px;border-bottom:1px solid var(--b1)}
+.l-tbl td{padding:9px 10px;font-size:11px;border-bottom:1px solid var(--b1);vertical-align:middle}
+.l-tbl tr:hover td{background:var(--card)}
+.l-ttl{font-weight:600;font-size:12px}
+.l-desc{font-size:10px;color:var(--txm);margin-top:2px}
+
+/* Analytics */
+.av{flex:1;overflow:auto;padding:13px 16px}
+.an-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.an-card{background:var(--card);border:1px solid var(--b1);border-radius:13px;padding:15px;transition:all .25s}
+.an-card:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.12)}
+.an-ttl{font-size:10px;font-weight:600;color:var(--txm);text-transform:uppercase;letter-spacing:.5px;margin-bottom:13px}
+.b-ch{display:flex;align-items:flex-end;gap:8px;height:78px}
+.b-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;height:100%;justify-content:flex-end}
+.b-bar{width:100%;border-radius:3px 3px 0 0}
+.b-lbl{font-size:8px;color:var(--txh)}
+.pb-row{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+.pb-lbl{font-size:10px;color:var(--txm);width:54px;flex-shrink:0}
+.pb-bg{flex:1;height:7px;background:var(--b1);border-radius:3px;overflow:hidden}
+.pb-fill{height:100%;border-radius:3px;transition:width .9s ease}
+.pb-num{font-size:10px;font-weight:600;min-width:16px;text-align:right}
+
+/* Filter panel */
+.fp-wrap{position:relative}
+.fp{position:absolute;top:calc(100% + 6px);right:0;background:var(--sur);border:1px solid var(--b2);border-radius:13px;padding:13px;min-width:205px;z-index:50;box-shadow:0 16px 48px rgba(0,0,0,.25);animation:scaleIn .2s ease}
+.fp-lbl{font-size:9px;font-weight:600;color:var(--txh);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.fp-opts{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
+.fp-opt{padding:3px 9px;border-radius:6px;border:1px solid var(--b1);background:var(--bg);color:var(--txm);font-size:10px;font-weight:500;cursor:pointer;transition:all .18s}
+.fp-opt:hover{border-color:var(--pri);color:var(--pri)}
+.fp-opt.on{border-color:var(--pri);color:var(--pri);background:var(--priD)}
+.fp-clr{width:100%;padding:5px;border:1px solid var(--b1);border-radius:6px;background:var(--bg);color:var(--txm);font-size:10px;cursor:pointer;transition:all .18s}
+.fp-clr:hover{border-color:var(--err);color:var(--err);background:var(--errD)}
+
+/* Modal */
+.mo-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:200;padding:16px;backdrop-filter:blur(5px);animation:fadeIn .2s ease}
+.mo-box{background:var(--sur);border:1px solid var(--b2);border-radius:20px;padding:25px;width:100%;max-width:505px;max-height:90vh;overflow-y:auto;animation:scaleIn .28s ease;box-shadow:0 24px 64px rgba(0,0,0,.35);position:relative}
+.mo-box::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--pri),var(--acc),var(--sec));background-size:200%;animation:grad 3s infinite;border-radius:20px 20px 0 0}
+.mo-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.mo-ttl{font-size:15px;font-weight:700}
+.mo-cl{width:28px;height:28px;background:var(--bg);border:1px solid var(--b1);border-radius:7px;color:var(--txm);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.mo-cl:hover{border-color:var(--err);color:var(--err);background:var(--errD)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.f-sel,.f-ta{width:100%;padding:9px 11px;border:1px solid var(--b2);border-radius:9px;background:var(--bg);color:var(--tx);font-size:12px;outline:none;transition:all .2s}
+.f-sel:focus,.f-ta:focus{border-color:var(--pri);box-shadow:0 0 0 3px var(--priD)}
+.f-ta{resize:vertical;min-height:68px}
+.f-ta::placeholder{color:var(--txh)}
+.tag-pick{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
+.tag-opt{padding:3px 9px;border-radius:6px;font-size:10px;font-weight:500;cursor:pointer;border:1px solid transparent;transition:all .18s}
+.tag-opt:hover{transform:scale(1.06)}
+.sub-list{display:flex;flex-direction:column;gap:5px;margin-bottom:7px}
+.sub-row{display:flex;align-items:center;gap:7px;padding:6px 9px;background:var(--bg);border:1px solid var(--b1);border-radius:7px;font-size:11px}
+.sub-cb{width:14px;height:14px;border-radius:4px;border:1.5px solid var(--b2);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .18s;font-size:9px;color:#fff}
+.sub-cb.ck{background:linear-gradient(135deg,var(--pri),var(--acc));border-color:transparent}
+.sub-t{flex:1;color:var(--tx)}
+.sub-t.dn{text-decoration:line-through;color:var(--txm)}
+.sub-del{background:none;border:none;color:var(--txh);cursor:pointer;font-size:13px;padding:0 2px;transition:color .15s}
+.sub-del:hover{color:var(--err)}
+.add-sub{display:flex;gap:6px}
+.add-sub-inp{flex:1;padding:6px 9px;border:1px solid var(--b1);border-radius:7px;background:var(--bg);color:var(--tx);font-size:11px;outline:none;transition:all .2s}
+.add-sub-inp:focus{border-color:var(--pri);box-shadow:0 0 0 2px var(--priD)}
+.add-sub-inp::placeholder{color:var(--txh)}
+.add-sub-btn{padding:6px 10px;border:1px solid var(--pri);border-radius:7px;background:var(--priD);color:var(--pri);font-size:10px;font-weight:600;cursor:pointer;transition:all .18s}
+.add-sub-btn:hover{background:var(--pri);color:#fff}
+.mo-ft{display:flex;gap:9px;margin-top:18px;justify-content:flex-end}
+.btn-cnl{padding:8px 15px;border-radius:9px;border:1px solid var(--b2);background:var(--bg);color:var(--txm);font-size:12px;font-weight:500;cursor:pointer;transition:all .18s}
+.btn-cnl:hover{color:var(--tx)}
+
+/* Toast */
+.toast{position:fixed;bottom:18px;right:18px;background:var(--sur);border:1px solid var(--b2);border-radius:11px;padding:9px 15px;display:flex;align-items:center;gap:9px;font-size:12px;font-weight:500;z-index:300;box-shadow:0 16px 48px rgba(0,0,0,.25);animation:toastUp .28s ease;min-width:190px}
+.toast-ic{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+
+/* Quick-add more btn */
+.qa-more{background:var(--bg);border:1px solid var(--b1);color:var(--txm);border-radius:7px;padding:5px 9px;font-size:10px;font-weight:500;cursor:pointer;transition:all .18s;width:100%;margin-top:3px}
+.qa-more:hover{border-color:var(--pri);color:var(--pri);background:var(--priD)}
+
+@media(max-width:680px){
+  .sb{display:none}
+  .feat-grid{grid-template-columns:1fr 1fr}
+  .h-title{font-size:30px}
+  .an-grid{grid-template-columns:1fr}
+  .stats{flex-wrap:wrap;padding:8px 12px}
+  .g2{grid-template-columns:1fr}
+}
+@media(max-width:400px){
+  .feat-grid{grid-template-columns:1fr}
+  .h-acts{flex-direction:column}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+"use strict";
+const {useState,useEffect,useRef}=React;
+const ce=React.createElement;
+
+/* ─── CONSTANTS ─── */
+const TAGS={Work:"#6366F1",Personal:"#A78BFA",Bug:"#F87171",Feature:"#34D399",Design:"#FBBF24",Research:"#22D3EE"};
+const PRIS={urgent:{l:"Urgent",c:"#F87171",bg:"rgba(248,113,113,.15)"},high:{l:"High",c:"#FB923C",bg:"rgba(251,146,60,.15)"},medium:{l:"Medium",c:"#FBBF24",bg:"rgba(251,191,36,.15)"},low:{l:"Low",c:"#34D399",bg:"rgba(52,211,153,.15)"}};
+const COLS=[{id:"todo",lbl:"To do",c:"#818CF8",bg:"rgba(129,140,248,.12)"},{id:"in-progress",lbl:"In progress",c:"#FBBF24",bg:"rgba(251,191,36,.12)"},{id:"done",lbl:"Done",c:"#34D399",bg:"rgba(52,211,153,.12)"}];
+const FEATS=[{i:"🗂️",t:"Kanban board",d:"Drag tasks across To do, In Progress, and Done with full status control."},{i:"🎯",t:"4-level priority",d:"Mark tasks Urgent, High, Medium or Low — nothing critical gets missed."},{i:"✅",t:"Subtasks",d:"Break big tasks into steps; watch the progress bar fill as you tick them off."},{i:"🏷️",t:"Smart tags",d:"Categorise with Work, Bug, Feature, Design — filter from the sidebar."},{i:"📊",t:"Analytics",d:"Live charts for status, priority, and tag distribution across your tasks."},{i:"🌙",t:"Dark & light mode",d:"Toggle the full theme with one button — dark by default, light on demand."}];
+let NID=9;
+const INIT=[
+  {id:1,title:"Set up MongoDB Atlas",desc:"Create cluster, configure users and IP whitelist",status:"done",pri:"high",tags:["Work","Feature"],subs:[{id:1,t:"Create cluster",done:true},{id:2,t:"Configure IP",done:true}],due:"2026-06-02",pin:true},
+  {id:2,title:"Build JWT authentication",desc:"Register & login routes, bcrypt hashing, token signing",status:"done",pri:"urgent",tags:["Work"],subs:[{id:1,t:"Register",done:true},{id:2,t:"Login",done:true},{id:3,t:"Middleware",done:true}],due:"2026-06-08",pin:false},
+  {id:3,title:"Design React dashboard",desc:"Sidebar, Kanban board, stats cards, modals, analytics",status:"in-progress",pri:"high",tags:["Work","Design"],subs:[{id:1,t:"Sidebar",done:true},{id:2,t:"Board",done:true},{id:3,t:"Modal",done:false},{id:4,t:"Analytics",done:false}],due:"2026-06-18",pin:true},
+  {id:4,title:"Connect frontend to API",desc:"Axios instance, JWT interceptors, AuthContext",status:"in-progress",pri:"medium",tags:["Work","Feature"],subs:[{id:1,t:"Axios setup",done:true},{id:2,t:"Auth context",done:false}],due:"2026-06-20",pin:false},
+  {id:5,title:"Fix mobile redirect bug",desc:"After login, redirect fails on Safari iOS",status:"todo",pri:"urgent",tags:["Bug"],subs:[],due:"2026-06-13",pin:false},
+  {id:6,title:"Add tag filter panel",desc:"Filter tasks by clicking tag badges in sidebar",status:"todo",pri:"medium",tags:["Feature"],subs:[{id:1,t:"Filter UI",done:false},{id:2,t:"API endpoint",done:false}],due:"2026-06-22",pin:false},
+  {id:7,title:"Write API documentation",desc:"Endpoint reference, setup guide, deployment notes",status:"todo",pri:"low",tags:["Work","Research"],subs:[],due:"2026-06-28",pin:false},
+  {id:8,title:"Deploy to Vercel + Render",desc:"CI env vars, CORS config, production smoke test",status:"todo",pri:"high",tags:["Work"],subs:[{id:1,t:"Backend Render",done:false},{id:2,t:"Frontend Vercel",done:false}],due:"2026-06-30",pin:false},
+];
+
+function isLate(d,s){return d&&s!=="done"&&new Date(d)<new Date();}
+function fmtD(d){return d?new Date(d).toLocaleDateString("en-US",{month:"short",day:"numeric"}):""}
+function prog(t){if(!t.subs.length)return null;return Math.round(t.subs.filter(s=>s.done).length/t.subs.length*100);}
+
+/* ─── ThemeBtn ─── */
+function ThemeBtn({theme,toggle}){
+  return ce("button",{className:"th-btn",onClick:toggle,title:"Toggle theme"},theme==="dark"?"☀️":"🌙");
+}
+
+/* ─── LogoSq ─── */
+function LogoSq({size}){
+  size=size||34;
+  return ce("div",{className:"logo-sq",style:{width:size,height:size,fontSize:size*0.5,borderRadius:9}},"📋");
+}
+
+/* ─── TOAST ─── */
+function Toast({toast}){
+  if(!toast)return null;
+  return ce("div",{className:"toast"},
+    ce("div",{className:"toast-ic",style:{background:toast.type==="err"?"var(--errD)":"var(--okD)",color:toast.type==="err"?"var(--err)":"var(--ok)"}},toast.type==="err"?"✕":"✓"),
+    toast.msg
+  );
+}
+
+/* ─── LANDING ─── */
+function Landing({theme,toggle,goLogin,goDemo}){
+  return ce("div",null,
+    ce("div",{className:"orbs"},
+      ce("div",{className:"orb o1"}),
+      ce("div",{className:"orb o2"}),
+      ce("div",{className:"orb o3"})
+    ),
+    ce("div",{className:"layer"},
+      ce("nav",{className:"l-nav"},
+        ce("div",{className:"nav-logo"},ce(LogoSq)," TaskFlow"),
+        ce("div",{className:"nav-links"},
+          ["Features","Pricing","Docs"].map(l=>ce("button",{key:l,className:"nav-link"},l))
+        ),
+        ce("div",{className:"nav-acts"},
+          ce(ThemeBtn,{theme,toggle}),
+          ce("button",{className:"bo",onClick:()=>goLogin("login")},"Sign in"),
+          ce("button",{className:"bp",onClick:()=>goLogin("register")},"Get started →")
+        )
+      ),
+      ce("div",{className:"hero"},
+        ce("div",{className:"h-badge"},"✨ v2 — Subtasks · Analytics · Smart filters"),
+        ce("h1",{className:"h-title"},"Organise your work, ",ce("span",{className:"gt"},"ship what matters")),
+        ce("p",{className:"h-sub"},"A full-stack task manager for developers and students. Kanban boards, 4-level priorities, subtask tracking and analytics — all in one responsive app."),
+        ce("div",{className:"h-acts"},
+          ce("button",{className:"bp",style:{padding:"13px 28px",fontSize:14},onClick:()=>goLogin("register")},"🚀 Start for free"),
+          ce("button",{className:"bo",style:{padding:"13px 28px",fontSize:14},onClick:goDemo},"👁 Live demo")
+        ),
+        ce("div",{className:"h-stats"},
+          [{v:"4 priorities",l:"Urgent · High · Medium · Low"},{v:"6 tag types",l:"Work, Bug, Design…"},{v:"3 views",l:"Kanban · List · Analytics"}].map(s=>
+            ce("div",{key:s.l,style:{textAlign:"center"}},
+              ce("div",{className:"hs-v"},s.v),
+              ce("div",{className:"hs-l"},s.l)
+            )
+          )
+        )
+      ),
+      ce("div",{className:"feat-sec"},
+        ce("p",{className:"sec-lbl"},"Everything included"),
+        ce("h2",{className:"sec-h2"},"Built for real workflows"),
+        ce("div",{className:"feat-grid"},
+          FEATS.map(f=>ce("div",{key:f.t,className:"feat-card"},
+            ce("div",{className:"feat-ic"},f.i),
+            ce("h3",{className:"feat-t"},f.t),
+            ce("p",{className:"feat-d"},f.d)
+          ))
+        )
+      )
+    )
+  );
+}
+
+/* ─── AUTH ─── */
+function AuthPage({theme,toggle,mode,setMode,onAuth,goHome}){
+  const [form,setForm]=useState({name:"",email:"",password:""});
+  const [err,setErr]=useState("");
+  function submit(){
+    if(mode==="register"&&!form.name.trim()){setErr("Name is required");return;}
+    if(!form.email.trim()||!form.password.trim()){setErr("All fields are required");return;}
+    if(form.password.length<6){setErr("Password must be at least 6 characters");return;}
+    onAuth({name:form.name||form.email.split("@")[0],email:form.email});
+  }
+  function fi(label,type,ph,val,key){
+    return ce("div",{className:"f-group"},
+      ce("label",{className:"f-lbl"},label),
+      ce("input",{className:"f-inp",type:type,placeholder:ph,value:val,
+        onChange:ev=>setForm({...form,[key]:ev.target.value}),
+        onKeyDown:ev=>ev.key==="Enter"&&submit()})
+    );
+  }
+  return ce("div",{style:{position:"relative",minHeight:"100vh"}},
+    ce("div",{className:"orbs"},ce("div",{className:"orb o1"}),ce("div",{className:"orb o2"})),
+    ce("div",{className:"layer auth-wrap"},
+      ce("div",{className:"auth-card"},
+        ce("div",{className:"a-logo"},ce(LogoSq,{size:30}),ce("span",{style:{fontSize:15,fontWeight:700}}," TaskFlow"),ce("span",{style:{marginLeft:"auto"}},ce(ThemeBtn,{theme,toggle}))),
+        ce("h2",{className:"a-h"},mode==="login"?"Welcome back":"Create account"),
+        ce("p",{className:"a-s"},mode==="login"?"Sign in to your workspace":"Start organising your work today"),
+        err?ce("div",{className:"a-err"},err):null,
+        mode==="register"?fi("Full name","text","Your name",form.name,"name"):null,
+        fi("Email","email","you@example.com",form.email,"email"),
+        fi("Password","password","••••••••",form.password,"password"),
+        ce("button",{className:"bp",style:{width:"100%",padding:11,fontSize:14,justifyContent:"center",marginTop:4},onClick:submit},mode==="login"?"Sign in":"Create account"),
+        ce("div",{className:"a-sw"},
+          mode==="login"
+            ?ce("span",null,"No account? ",ce("span",{className:"a-lnk",onClick:()=>{setMode("register");setErr("");}},"Register"))
+            :ce("span",null,"Have an account? ",ce("span",{className:"a-lnk",onClick:()=>{setMode("login");setErr("");}},"Sign in"))
+        ),
+        ce("span",{className:"a-back",onClick:goHome},"← Back to home")
+      )
+    )
+  );
+}
+
+/* ─── TASK CARD ─── */
+function TaskCard({task,expanded,onExpand,onEdit,onDelete,onPin,onStatus}){
+  const pc=PRIS[task.pri]||PRIS.medium;
+  const p=prog(task);
+  const late=isLate(task.due,task.status);
+  return ce("div",{className:"tc"+(task.pin?" pinned":""),onClick:()=>onExpand(task.id)},
+    task.pin?ce("div",{className:"tc-pin"},"📌"):null,
+    ce("div",{className:"tc-ttl"},task.title),
+    task.desc?ce("div",{className:"tc-desc"},task.desc):null,
+    p!==null?ce("div",null,
+      ce("div",{className:"prog-hdr"},ce("span",null,"Subtasks"),ce("span",null,task.subs.filter(s=>s.done).length+"/"+task.subs.length)),
+      ce("div",{className:"prog-bar"},ce("div",{className:"prog-fill",style:{width:p+"%"}}))
+    ):null,
+    ce("div",{className:"tc-foot"},
+      ce("span",{className:"bdg",style:{color:pc.c,background:pc.bg}},pc.l),
+      task.tags.map(tg=>ce("span",{key:tg,className:"tag-ch",style:{background:TAGS[tg]+"22",color:TAGS[tg]}},tg)),
+      task.due?ce("span",{className:"tc-date"+(late?" late":"")},late?"⚠ ":"📅 ",fmtD(task.due)):null
+    ),
+    expanded?ce("div",{className:"tc-acts",onClick:ev=>ev.stopPropagation()},
+      ce("select",{className:"sts-sel",value:task.status,onChange:ev=>onStatus(task.id,ev.target.value)},
+        ce("option",{value:"todo"},"To do"),
+        ce("option",{value:"in-progress"},"In progress"),
+        ce("option",{value:"done"},"Done")
+      ),
+      ce("button",{className:"ac-btn",onClick:()=>onPin(task.id)},task.pin?"Unpin":"📌 Pin"),
+      ce("button",{className:"ac-btn",onClick:()=>onEdit(task)},"✏ Edit"),
+      ce("button",{className:"ac-btn del",onClick:()=>onDelete(task.id)},"🗑")
+    ):null
+  );
+}
+
+/* ─── TASK MODAL ─── */
+function TaskModal({task,onSave,onClose}){
+  const [f,setF]=useState({title:task?task.title:"",desc:task?task.desc:"",status:task?task.status:"todo",pri:task?task.pri:"medium",tags:task?task.tags:[],subs:task?task.subs:[],due:task?task.due:""});
+  const [ns,setNs]=useState("");
+  const [err,setErr]=useState("");
+  const sid=useRef(task?task.subs.length+1:1);
+  function submit(){if(!f.title.trim()){setErr("Title required");return;}onSave(f);}
+  function addSub(){if(!ns.trim())return;setF(x=>({...x,subs:[...x.subs,{id:sid.current++,t:ns,done:false}]}));setNs("");}
+  function togTag(tag){setF(x=>({...x,tags:x.tags.includes(tag)?x.tags.filter(t=>t!==tag):[...x.tags,tag]}));}
+  function togSub(id){setF(x=>({...x,subs:x.subs.map(s=>s.id===id?{...s,done:!s.done}:s)}));}
+  function delSub(id){setF(x=>({...x,subs:x.subs.filter(s=>s.id!==id)}));}
+  function sel(lbl,key,opts){
+    return ce("div",{className:"f-group"},
+      ce("label",{className:"f-lbl"},lbl),
+      ce("select",{className:"f-sel",value:f[key],onChange:ev=>setF({...f,[key]:ev.target.value})},
+        opts.map(o=>ce("option",{key:o.v,value:o.v},o.l))
+      )
+    );
+  }
+  return ce("div",{className:"mo-bg",onClick:ev=>ev.target===ev.currentTarget&&onClose()},
+    ce("div",{className:"mo-box"},
+      ce("div",{className:"mo-hdr"},
+        ce("h2",{className:"mo-ttl"},task?"Edit task":"New task"),
+        ce("button",{className:"mo-cl",onClick:onClose},"×")
+      ),
+      err?ce("div",{className:"a-err"},err):null,
+      ce("div",{className:"f-group"},
+        ce("label",{className:"f-lbl"},"Title *"),
+        ce("input",{className:"f-inp",placeholder:"What needs to be done?",value:f.title,
+          onChange:ev=>setF({...f,title:ev.target.value}),onKeyDown:ev=>ev.key==="Enter"&&submit()})
+      ),
+      ce("div",{className:"f-group"},
+        ce("label",{className:"f-lbl"},"Description"),
+        ce("textarea",{className:"f-ta",placeholder:"Add more details…",value:f.desc,onChange:ev=>setF({...f,desc:ev.target.value})})
+      ),
+      ce("div",{className:"g2"},
+        sel("Status","status",[{v:"todo",l:"To do"},{v:"in-progress",l:"In progress"},{v:"done",l:"Done"}]),
+        sel("Priority","pri",[{v:"urgent",l:"🔴 Urgent"},{v:"high",l:"🟠 High"},{v:"medium",l:"🟡 Medium"},{v:"low",l:"🟢 Low"}])
+      ),
+      ce("div",{className:"f-group"},
+        ce("label",{className:"f-lbl"},"Due date"),
+        ce("input",{className:"f-inp",type:"date",value:f.due,onChange:ev=>setF({...f,due:ev.target.value})})
+      ),
+      ce("div",{className:"f-group"},
+        ce("label",{className:"f-lbl"},"Tags"),
+        ce("div",{className:"tag-pick"},
+          Object.entries(TAGS).map(([tag,color])=>
+            ce("button",{key:tag,className:"tag-opt",
+              style:{background:color+"20",color,borderColor:f.tags.includes(tag)?color:"transparent",border:"1px solid",boxShadow:f.tags.includes(tag)?"0 0 0 2px "+color+"44":"none"},
+              onClick:()=>togTag(tag)},
+              f.tags.includes(tag)?"✓ ":"",tag
+            )
+          )
+        )
+      ),
+      ce("div",{className:"f-group"},
+        ce("label",{className:"f-lbl"},"Subtasks"),
+        f.subs.length?ce("div",{className:"sub-list"},
+          f.subs.map(s=>ce("div",{key:s.id,className:"sub-row"},
+            ce("div",{className:"sub-cb"+(s.done?" ck":""),onClick:()=>togSub(s.id)},s.done?"✓":""),
+            ce("span",{className:"sub-t"+(s.done?" dn":"")},s.t),
+            ce("button",{className:"sub-del",onClick:()=>delSub(s.id)},"×")
+          ))
+        ):null,
+        ce("div",{className:"add-sub"},
+          ce("input",{className:"add-sub-inp",placeholder:"Add subtask…",value:ns,
+            onChange:ev=>setNs(ev.target.value),onKeyDown:ev=>ev.key==="Enter"&&addSub()}),
+          ce("button",{className:"add-sub-btn",onClick:addSub},"+ Add")
+        )
+      ),
+      ce("div",{className:"mo-ft"},
+        ce("button",{className:"btn-cnl",onClick:onClose},"Cancel"),
+        ce("button",{className:"bp",style:{padding:"8px 18px",fontSize:12,fontWeight:600,borderRadius:9},onClick:submit},task?"Save changes":"Create task")
+      )
+    )
+  );
+}
+
+/* ─── ANALYTICS ─── */
+function AnalyticsView({tasks}){
+  const cnt=id=>tasks.filter(t=>t.status===id).length;
+  const pct=(n)=>tasks.length?n/tasks.length*100:0;
+  return ce("div",{className:"av"},
+    ce("div",{className:"an-grid"},
+      ce("div",{className:"an-card"},
+        ce("div",{className:"an-ttl"},"Tasks by status"),
+        ce("div",{className:"b-ch"},
+          COLS.map(col=>{const n=cnt(col.id),p=pct(n);return ce("div",{key:col.id,className:"b-col"},
+            ce("span",{style:{fontSize:11,fontWeight:700,color:col.c}},n),
+            ce("div",{className:"b-bar",style:{height:Math.max(p,6)+"%",background:col.c,opacity:.85}}),
+            ce("span",{className:"b-lbl"},col.lbl)
+          );})
+        )
+      ),
+      ce("div",{className:"an-card"},
+        ce("div",{className:"an-ttl"},"Priority breakdown"),
+        Object.entries(PRIS).map(([k,v])=>{const n=tasks.filter(t=>t.pri===k).length,p=pct(n);return ce("div",{key:k,className:"pb-row"},
+          ce("span",{className:"pb-lbl"},v.l),
+          ce("div",{className:"pb-bg"},ce("div",{className:"pb-fill",style:{width:p+"%",background:v.c}})),
+          ce("span",{className:"pb-num",style:{color:v.c}},n)
+        );})
+      ),
+      ce("div",{className:"an-card"},
+        ce("div",{className:"an-ttl"},"Tag distribution"),
+        Object.entries(TAGS).map(([tag,color])=>{const n=tasks.filter(t=>t.tags.includes(tag)).length,p=pct(n);return ce("div",{key:tag,className:"pb-row"},
+          ce("span",{className:"pb-lbl"},tag),
+          ce("div",{className:"pb-bg"},ce("div",{className:"pb-fill",style:{width:p+"%",background:color}})),
+          ce("span",{className:"pb-num",style:{color}},n)
+        );})
+      ),
+      ce("div",{className:"an-card"},
+        ce("div",{className:"an-ttl"},"Summary"),
+        [
+          {l:"Completion rate",v:tasks.length?Math.round(cnt("done")/tasks.length*100)+"%":"0%",c:"var(--ok)"},
+          {l:"Pinned tasks",v:tasks.filter(t=>t.pin).length,c:"var(--warn)"},
+          {l:"Overdue tasks",v:tasks.filter(t=>isLate(t.due,t.status)).length,c:"var(--err)"},
+          {l:"With subtasks",v:tasks.filter(t=>t.subs.length>0).length,c:"var(--pri)"},
+          {l:"Avg subtasks",v:tasks.length?(tasks.reduce((a,t)=>a+t.subs.length,0)/tasks.length).toFixed(1):"0",c:"var(--sec)"},
+        ].map(item=>ce("div",{key:item.l,style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:7}},
+          ce("span",{style:{fontSize:11,color:"var(--txm)"}},item.l),
+          ce("span",{style:{fontSize:14,fontWeight:700,color:item.c}},item.v)
+        ))
+      )
+    )
+  );
+}
+
+/* ─── DASHBOARD ─── */
+function Dashboard({theme,toggle,user,onLogout}){
+  const [tasks,setTasks]=useState(INIT);
+  const [view,setView]=useState("kanban");
+  const [sf,setSf]=useState("all");
+  const [srch,setSrch]=useState("");
+  const [tagF,setTagF]=useState(null);
+  const [priF,setPriF]=useState(null);
+  const [showFP,setShowFP]=useState(false);
+  const [modal,setModal]=useState(false);
+  const [editT,setEditT]=useState(null);
+  const [expC,setExpC]=useState(null);
+  const [qa,setQa]=useState(null);
+  const [qt,setQt]=useState("");
+  const [toast,setToast]=useState(null);
+
+  function notify(msg,type){setToast({msg,type:"ok",...(type?{type}:{})});setTimeout(()=>setToast(null),2700);}
+  function saveT(d){
+    if(editT)setTasks(ts=>ts.map(x=>x.id===editT.id?{...x,...d}:x));
+    else setTasks(ts=>[...ts,{id:NID++,...d,pin:false}]);
+    setModal(false);notify(editT?"Task updated ✓":"Task created ✓");
+  }
+  function delT(id){setTasks(ts=>ts.filter(x=>x.id!==id));setExpC(null);notify("Task deleted","err");}
+  function pinT(id){setTasks(ts=>ts.map(x=>x.id===id?{...x,pin:!x.pin}:x));}
+  function updSt(id,s){setTasks(ts=>ts.map(x=>x.id===id?{...x,status:s}:x));notify("Status updated");}
+  function doQA(col){
+    if(!qt.trim()){setQa(null);return;}
+    setTasks(ts=>[...ts,{id:NID++,title:qt,desc:"",status:col,pri:"medium",tags:[],subs:[],due:"",pin:false}]);
+    setQt("");setQa(null);notify("Task added ✓");
+  }
+
+  const cnt={all:tasks.length,todo:tasks.filter(t=>t.status==="todo").length,"in-progress":tasks.filter(t=>t.status==="in-progress").length,done:tasks.filter(t=>t.status==="done").length,pin:tasks.filter(t=>t.pin).length};
+  const filtered=tasks.filter(t=>{
+    if(sf==="pin"&&!t.pin)return false;
+    if(sf!=="all"&&sf!=="pin"&&t.status!==sf)return false;
+    if(srch&&!t.title.toLowerCase().includes(srch.toLowerCase()))return false;
+    if(tagF&&!t.tags.includes(tagF))return false;
+    if(priF&&t.pri!==priF)return false;
+    return true;
+  });
+
+  const NAV=[{id:"all",ic:"⊞",l:"All tasks",n:cnt.all},{id:"todo",ic:"○",l:"To do",n:cnt.todo},{id:"in-progress",ic:"◑",l:"In progress",n:cnt["in-progress"]},{id:"done",ic:"●",l:"Done",n:cnt.done},{id:"pin",ic:"📌",l:"Pinned",n:cnt.pin}];
+  const STATS=[{l:"Total",v:cnt.all,c:"#818CF8",bg:"rgba(129,140,248,.12)",i:"📋"},{l:"To do",v:cnt.todo,c:"var(--pri)",bg:"var(--priD)",i:"○"},{l:"In progress",v:cnt["in-progress"],c:"var(--warn)",bg:"var(--warnD)",i:"◑"},{l:"Done",v:cnt.done,c:"var(--ok)",bg:"var(--okD)",i:"✓"}];
+
+  function expand(id){setExpC(expC===id?null:id);}
+
+  return ce("div",{className:"dash",onClick:()=>{setShowFP(false);setExpC(null);}},
+    /* SIDEBAR */
+    ce("div",{className:"sb"},
+      ce("div",{className:"sb-logo"},ce(LogoSq,{size:26})," TaskFlow"),
+      ce("div",{className:"sb-sec"},"Views"),
+      NAV.map(item=>ce("button",{key:item.id,className:"sb-item"+(sf===item.id?" active":""),onClick:()=>{setSf(item.id);setTagF(null);setPriF(null);}},
+        ce("span",{style:{fontSize:12,width:14,textAlign:"center"}},item.ic),item.l,
+        ce("span",{className:"sb-num"},item.n)
+      )),
+      ce("div",{className:"sb-sec",style:{marginTop:5}},"Tags"),
+      Object.entries(TAGS).slice(0,5).map(([tag,color])=>ce("button",{key:tag,className:"sb-item"+(tagF===tag?" active":""),
+        style:tagF===tag?{color,borderColor:color+"40",background:color+"14"}:{},
+        onClick:()=>setTagF(tagF===tag?null:tag)},
+        ce("span",{style:{width:7,height:7,borderRadius:"50%",background:color,display:"inline-block",flexShrink:0}}),
+        tag,ce("span",{className:"sb-num"},tasks.filter(t=>t.tags.includes(tag)).length)
+      )),
+      ce("div",{className:"sb-div"}),
+      ce("div",{className:"sb-foot"},
+        ce("div",{className:"u-row"},
+          ce("div",{className:"u-av"},(user.name||"U")[0].toUpperCase()),
+          ce("div",{style:{minWidth:0,flex:1}},
+            ce("div",{className:"u-nm"},user.name),
+            ce("div",{className:"u-em"},user.email)
+          ),
+          ce(ThemeBtn,{theme,toggle})
+        ),
+        ce("button",{className:"lo-btn",onClick:onLogout},"↪ Sign out")
+      )
+    ),
+    /* MAIN */
+    ce("div",{className:"main"},
+      /* TOPBAR */
+      ce("div",{className:"topb",onClick:ev=>ev.stopPropagation()},
+        ce("div",null,
+          ce("div",{className:"tb-ttl"},sf==="all"?"All tasks":sf==="pin"?"Pinned":NAV.find(n=>n.id===sf).l),
+          ce("div",{className:"tb-sub"},filtered.length+" task"+(filtered.length!==1?"s":""))
+        ),
+        ce("div",{className:"srch"},
+          ce("span",{style:{color:"var(--txh)",fontSize:13}},"⌕"),
+          ce("input",{placeholder:"Search…",value:srch,onChange:ev=>setSrch(ev.target.value)})
+        ),
+        /* Filter panel */
+        ce("div",{className:"fp-wrap",onClick:ev=>ev.stopPropagation()},
+          ce("button",{className:"ic-btn"+(tagF||priF?" on":""),onClick:()=>setShowFP(f=>!f)},"⊟"),
+          showFP?ce("div",{className:"fp"},
+            ce("div",{className:"fp-lbl"},"Priority"),
+            ce("div",{className:"fp-opts"},Object.entries(PRIS).map(([k,v])=>
+              ce("button",{key:k,className:"fp-opt"+(priF===k?" on":""),
+                style:priF===k?{borderColor:v.c,color:v.c,background:v.bg}:{},
+                onClick:()=>setPriF(priF===k?null:k)},v.l)
+            )),
+            ce("div",{className:"fp-lbl"},"Tags"),
+            ce("div",{className:"fp-opts"},Object.entries(TAGS).map(([tag,color])=>
+              ce("button",{key:tag,className:"fp-opt"+(tagF===tag?" on":""),
+                style:tagF===tag?{borderColor:color,color,background:color+"20"}:{},
+                onClick:()=>setTagF(tagF===tag?null:tag)},tag)
+            )),
+            ce("button",{className:"fp-clr",onClick:()=>{setTagF(null);setPriF(null);setShowFP(false);}},"✕ Clear filters")
+          ):null
+        ),
+        /* View toggle */
+        ce("div",{className:"vt"},
+          [["kanban","⊞"],["list","☰"],["analytics","📊"]].map(([v,ic])=>
+            ce("button",{key:v,className:"vt-b"+(view===v?" on":""),onClick:()=>setView(v),title:v},ic)
+          )
+        ),
+        ce("button",{className:"bp",style:{padding:"7px 13px",fontSize:12,fontWeight:600,borderRadius:9,whiteSpace:"nowrap"},onClick:()=>{setEditT(null);setModal(true);}},
+          "+ Add task"
+        )
+      ),
+      /* STATS */
+      ce("div",{className:"stats"},
+        STATS.map(s=>ce("div",{key:s.l,className:"sc"},
+          ce("div",{className:"sc-ic",style:{background:s.bg,color:s.c}},s.i),
+          ce("div",null,ce("div",{className:"sc-v",style:{color:s.c}},s.v),ce("div",{className:"sc-l"},s.l))
+        ))
+      ),
+      /* KANBAN */
+      view==="kanban"?ce("div",{className:"board",onClick:()=>{setShowFP(false);setExpC(null);}},
+        COLS.map(col=>{
+          const colTs=filtered.filter(t=>t.status===col.id);
+          const isQA=qa===col.id;
+          return ce("div",{key:col.id,className:"k-col"},
+            ce("div",{className:"k-hdr",style:{background:col.bg}},
+              ce("div",{className:"k-dot",style:{background:col.c}}),
+              ce("span",{className:"k-lbl",style:{color:col.c}},col.lbl),
+              ce("span",{className:"k-cnt",style:{color:col.c,background:col.c+"22"}},colTs.length)
+            ),
+            colTs.length===0&&!isQA?ce("div",{className:"empty-col",onClick:()=>setQa(col.id)},"+ Add a task"):null,
+            colTs.map(t=>ce(TaskCard,{key:t.id,task:t,expanded:expC===t.id,onExpand:expand,onEdit:t=>{setEditT(t);setModal(true);setExpC(null);},onDelete:delT,onPin:pinT,onStatus:updSt})),
+            isQA?ce("div",{className:"qa-row"},
+              ce("input",{className:"qa-inp",autoFocus:true,placeholder:"Task title…",value:qt,
+                onChange:ev=>setQt(ev.target.value),
+                onKeyDown:ev=>{if(ev.key==="Enter")doQA(col.id);if(ev.key==="Escape"){setQa(null);setQt("");}}}),
+              ce("button",{className:"qa-go",onClick:()=>doQA(col.id)},"+")
+            ):colTs.length>0?ce("button",{className:"qa-more",onClick:()=>setQa(col.id)},"+ Quick add"):null
+          );
+        })
+      ):null,
+      /* LIST */
+      view==="list"?ce("div",{className:"lv"},
+        ce("table",{className:"l-tbl"},
+          ce("thead",null,ce("tr",null,["Task","Status","Priority","Tags","Progress","Due","Actions"].map(h=>ce("th",{key:h},h)))),
+          ce("tbody",null,
+            filtered.map(task=>{
+              const pc=PRIS[task.pri]||PRIS.medium;
+              const sc=COLS.find(c=>c.id===task.status)||COLS[0];
+              const p=prog(task);
+              const late=isLate(task.due,task.status);
+              return ce("tr",{key:task.id},
+                ce("td",null,ce("div",{className:"l-ttl"},(task.pin?"📌 ":"")+task.title),task.desc?ce("div",{className:"l-desc"},task.desc):null),
+                ce("td",null,ce("span",{className:"bdg",style:{color:sc.c,background:sc.bg}},sc.lbl)),
+                ce("td",null,ce("span",{className:"bdg",style:{color:pc.c,background:pc.bg}},pc.l)),
+                ce("td",null,ce("div",{style:{display:"flex",gap:3,flexWrap:"wrap"}},task.tags.map(tg=>ce("span",{key:tg,className:"tag-ch",style:{background:TAGS[tg]+"22",color:TAGS[tg]}},tg)))),
+                ce("td",null,p!==null?ce("div",{style:{display:"flex",alignItems:"center",gap:5}},
+                  ce("div",{className:"prog-bar",style:{width:52}},ce("div",{className:"prog-fill",style:{width:p+"%"}})),
+                  ce("span",{style:{fontSize:9,color:"var(--txm)"}},p+"%")
+                ):ce("span",{style:{color:"var(--txh)"}},"—")),
+                ce("td",{style:{color:late?"var(--err)":"var(--txm)",fontSize:10}},task.due?fmtD(task.due):"—"),
+                ce("td",null,ce("div",{style:{display:"flex",gap:4}},
+                  ce("button",{className:"ac-btn",onClick:()=>{setEditT(task);setModal(true);}},"✏"),
+                  ce("button",{className:"ac-btn del",onClick:()=>delT(task.id)},"🗑")
+                ))
+              );
+            }),
+            filtered.length===0?ce("tr",null,ce("td",{colSpan:7,style:{textAlign:"center",color:"var(--txh)",padding:40,fontSize:13}},"No tasks found")):null
+          )
+        )
+      ):null,
+      /* ANALYTICS */
+      view==="analytics"?ce(AnalyticsView,{tasks}):null
+    ),
+    /* MODAL */
+    modal?ce(TaskModal,{task:editT,onSave:saveT,onClose:()=>setModal(false)}):null,
+    /* TOAST */
+    ce(Toast,{toast})
+  );
+}
+
+/* ─── ROOT APP ─── */
+function App(){
+  const [theme,setTheme]=useState("dark");
+  const [page,setPage]=useState("landing");
+  const [authMode,setAuthMode]=useState("login");
+  const [user,setUser]=useState(null);
+  const toggle=()=>setTheme(t=>t==="dark"?"light":"dark");
+  return ce("div",{className:"app "+theme},
+    page==="landing"?ce(Landing,{theme,toggle,
+      goLogin:(m)=>{setAuthMode(m||"login");setPage("login");},
+      goDemo:()=>{setUser({name:"Demo User",email:"demo@taskflow.app"});setPage("app");}
+    }):null,
+    page==="login"?ce(AuthPage,{theme,toggle,mode:authMode,setMode:setAuthMode,
+      onAuth:(u)=>{setUser(u);setPage("app");},
+      goHome:()=>setPage("landing")
+    }):null,
+    page==="app"?ce(Dashboard,{theme,toggle,user,
+      onLogout:()=>{setUser(null);setPage("landing");}
+    }):null
+  );
+}
+
+ReactDOM.render(ce(App,null), document.getElementById("root"));
+</script>
+</body>
+</html>

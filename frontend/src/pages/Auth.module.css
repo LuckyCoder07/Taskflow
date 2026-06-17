@@ -1,0 +1,91 @@
+/* src/pages/Auth.module.css */
+
+.wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 20px;
+  background: var(--bg);
+  position: relative;
+  overflow: hidden;
+  animation: fadeIn .35s ease;
+}
+
+/* Floating orbs */
+.orb { position: absolute; border-radius: 50%; filter: blur(70px); pointer-events: none; }
+.o1  { width: 420px; height: 420px; background: var(--o1); top: -80px; left: -80px; animation: floatA 22s ease-in-out infinite; }
+.o2  { width: 320px; height: 320px; background: var(--o2); bottom: -40px; right: -40px; animation: floatB 28s ease-in-out infinite; }
+
+.card {
+  background: var(--sur);
+  border: 1px solid var(--b2);
+  border-radius: 20px;
+  padding: 36px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.28);
+  animation: scaleIn .35s ease;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+
+/* Animated top border */
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--pri), var(--acc), var(--sec));
+  background-size: 200%;
+  animation: gradShift 3s ease infinite;
+}
+
+.logoRow { display: flex; align-items: center; gap: 9px; margin-bottom: 24px; }
+.logoSq  { width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg,var(--pri),var(--acc)); display: flex; align-items: center; justify-content: center; font-size: 15px; box-shadow: 0 4px 12px var(--priG); }
+.logoText { font-size: 15px; font-weight: 700; color: var(--tx); }
+.themeBtn { margin-left: auto; width: 36px; height: 36px; border-radius: 9px; border: 1px solid var(--b1); background: var(--card); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; transition: all .25s; }
+.themeBtn:hover { border-color: var(--pri); background: var(--priD); transform: scale(1.08); }
+
+.heading { font-size: 21px; font-weight: 700; color: var(--tx); margin-bottom: 4px; }
+.sub     { font-size: 13px; color: var(--txm); margin-bottom: 20px; }
+
+.error {
+  background: var(--errD);
+  border: 1px solid var(--err);
+  color: var(--err);
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  margin-bottom: 12px;
+  animation: fadeUp .2s ease;
+}
+
+.field { margin-bottom: 13px; }
+.label { display: block; font-size: 10px; font-weight: 600; color: var(--txm); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 5px; }
+.input {
+  width: 100%; padding: 10px 12px;
+  border: 1px solid var(--b2); border-radius: 9px;
+  background: var(--bg); color: var(--tx);
+  font-size: 13px; font-family: inherit; outline: none;
+  transition: all .2s;
+}
+.input:focus { border-color: var(--pri); box-shadow: 0 0 0 3px var(--priD); }
+.input::placeholder { color: var(--txh); }
+
+.submit {
+  width: 100%; padding: 11px; font-size: 14px; font-weight: 600;
+  border: none; border-radius: 10px; cursor: pointer; font-family: inherit;
+  background: linear-gradient(135deg, var(--pri), var(--acc));
+  color: #fff; margin-top: 4px;
+  box-shadow: 0 4px 14px var(--priG);
+  transition: transform .2s, box-shadow .2s;
+}
+.submit:hover { transform: translateY(-2px); box-shadow: 0 8px 24px var(--priG); }
+.submit:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+.switch { text-align: center; margin-top: 16px; font-size: 13px; color: var(--txm); }
+.switchLink { color: var(--pri); cursor: pointer; font-weight: 500; text-decoration: underline; }
+.backLink { display: block; text-align: center; margin-top: 10px; font-size: 11px; color: var(--pri); cursor: pointer; text-decoration: none; }
+.backLink:hover { color: var(--acc); }
